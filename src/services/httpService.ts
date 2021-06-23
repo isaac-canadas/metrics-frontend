@@ -1,5 +1,6 @@
 import axios from "axios";
 import { toast } from "react-toastify";
+import * as Sentry from "@sentry/react";
 
 // Generic unexpected error handling for Axios
 axios.interceptors.response.use(
@@ -12,10 +13,9 @@ axios.interceptors.response.use(
       error.response.status >= 500 &&
       error.response.status < 500;
     if (!expectedError) {
-      // Simulate a log entry
-      console.log("[ERROR] ", error);
+      // Send the error to Sentry
+      Sentry.captureException(error);
 
-      // Simulate a friendly error message
       toast.error("An unexpected error has occurred");
     }
     return Promise.reject(error);
