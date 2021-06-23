@@ -1,0 +1,6 @@
+{
+  "apiEndpoint": "http://localhost:3000/metrics",
+  "averageDayQuery": "/average_day",
+  "averageHourQuery": "/average_hour",
+  "averageMinuteQuery": "/average_minute"
+}

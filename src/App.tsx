@@ -1,14 +1,18 @@
 import { Component } from "react";
-import axios from "axios";
+import { toast, ToastContainer } from "react-toastify";
 import { MetricSearchResultType } from "./Types/MetricSearchResultType";
 import { MetricAverageResultType } from "./Types/MetricAverageResultType";
 import MetricsTimeline from "./Components/MetricsTimeline";
 import "antd/dist/antd.css";
+import "react-toastify/dist/ReactToastify.css";
 import { Layout } from "antd";
 import AddMetric from "./Components/AddMetric";
 import { Metric } from "./Types/Metric";
 import MetricsAverage from "./Components/MetricsAverage";
 import { MetricAverage } from "./Types/MetricAverage";
+import httpService from "./services/httpService";
+import config from "./config.json";
+import React from "react";
 
 class App extends Component {
   state = {
@@ -23,20 +27,20 @@ class App extends Component {
   }
 
   async reloadMetrics() {
-    const { data: metrics } = await axios.get<MetricSearchResultType>(
-      `http://localhost:3000/metrics`
+    const { data: metrics } = await httpService.get<MetricSearchResultType>(
+      config.apiEndpoint
     );
     const { data: metricsAverageDay } =
-      await axios.get<MetricAverageResultType>(
-        `http://localhost:3000/metrics/average_day`
+      await httpService.get<MetricAverageResultType>(
+        config.apiEndpoint + config.averageDayQuery
       );
     const { data: metricsAverageHour } =
-      await axios.get<MetricAverageResultType>(
-        `http://localhost:3000/metrics/average_hour`
+      await httpService.get<MetricAverageResultType>(
+        config.apiEndpoint + config.averageHourQuery
       );
     const { data: metricsAverageMinute } =
-      await axios.get<MetricAverageResultType>(
-        `http://localhost:3000/metrics/average_minute`
+      await httpService.get<MetricAverageResultType>(
+        config.apiEndpoint + config.averageMinuteQuery
       );
     this.setState({
       metrics,
@@ -46,15 +50,29 @@ class App extends Component {
     });
   }
 
-  private onFinish = (values: Metric) => {
-    axios
-      .post("http://localhost:3000/metrics", values)
-      .then((response) => this.reloadMetrics());
+  private onFinish = async (values: Metric) => {
+    const { data: metric } = await httpService.post(config.apiEndpoint, values);
+    // Update the new metric in the UI and empty the averages
+    // before refeshing from the server
+    const metrics: Metric[] = [...this.state.metrics, metric];
+    const newState = {
+      metrics,
+      metricsAverageDay: {},
+      metricsAverageHour: {},
+      metricsAverageMinute: {},
+    };
+    this.setState(newState);
+    // Info the user that the operation was a success
+    toast("Metric inserted successfully");
+    // Reload the data after adding the new value to refresh data
+    // from other users and update the averages
+    this.reloadMetrics();
   };
 
   render() {
     return (
-      <Layout>
+      <React.Fragment>
+        <ToastContainer />
         <Layout>
           <Layout.Content style={{ margin: "24px 16px 0" }}>
             <div
@@ -80,16 +98,12 @@ class App extends Component {
             Metrics application. A test playing with React and Ruby on Rails
           </Layout.Footer>
         </Layout>
-      </Layout>
+      </React.Fragment>
     );
   }
   parseAverage(metricAverageResult: any): MetricAverage[] {
     let metricsAverage: MetricAverage[] = [];
-    console.log("MetricAverageResult:");
-    console.log(metricAverageResult);
     const entries = Object.entries(metricAverageResult);
-    console.log("Entries:");
-    console.log(entries);
     entries.map((entry: [string, any]) =>
       metricsAverage.push({ name: entry[0], value: entry[1] })
     );
